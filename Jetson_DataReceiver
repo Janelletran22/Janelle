@@ -1,0 +1,52 @@
+import socket
+import time
+import struct
+from datetime import datetime
+
+def setup_ethernet_connection(host='0.0.0.0', port=8000):
+    """Set up a socket connection to listen on the Ethernet port."""
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((host, port))
+    server_socket.listen(1)
+    print(f"Listening for connections on port {port}...")
+    return server_socket
+
+def read_ethernet_data(connection, buffer_size=1024):
+    """Read data from the Ethernet connection."""
+    try:
+        data = connection.recv(buffer_size)
+        if data:
+            # Convert bytes to integers (assuming data is in byte format)
+            values = struct.unpack(f'{len(data)}B', data)
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+            return timestamp, values
+        return None, None
+    except Exception as e:
+        print(f"Error reading data: {e}")
+        return None, None
+
+def main():
+    server_socket = setup_ethernet_connection()
+    
+    try:
+        print("Waiting for client connection...")
+        connection, client_address = server_socket.accept()
+        print(f"Connected to client: {client_address}")
+        
+        while True:
+            timestamp, data = read_ethernet_data(connection)
+            if timestamp and data:
+                print(f"[{timestamp}] Received data: {data}")
+            time.sleep(0.01)  # Small delay to prevent CPU overload
+            
+    except KeyboardInterrupt:
+        print("\nStopping the server...")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        connection.close()
+        server_socket.close()
+        print("Connection closed")
+
+if __name__ == "__main__":
+    main()
